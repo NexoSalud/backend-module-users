@@ -26,6 +26,9 @@ public class UserInitializer implements CommandLineRunner {
     private AttributeUserRepository attributeUserRepository;
     @Autowired
     private com.reactive.nexo.repository.ValueAttributeUserRepository valueAttributeUserRepository;
+
+    @Autowired
+    private com.reactive.nexo.service.ValueAttributeService valueAttributeService;
     
     @Override
     public void run(String... args) {
@@ -56,22 +59,22 @@ public class UserInitializer implements CommandLineRunner {
                     // create attributes for each saved user
                     List<AttributeUser> attrs = new java.util.ArrayList<>();
                     for(com.reactive.nexo.model.User u : savedUsers){
-                        attrs.add(new AttributeUser(null,"fecha de nacimiento", u.getId()));
-                        attrs.add(new AttributeUser(null,"lugar de nacimiento ciudad", u.getId()));
-                        attrs.add(new AttributeUser(null,"lugar de nacimiento departamento", u.getId()));
-                        attrs.add(new AttributeUser(null,"lugar de nacimiento pais", u.getId()));
-                        attrs.add(new AttributeUser(null,"ubicacion ciudad", u.getId()));
-                        attrs.add(new AttributeUser(null,"ubicacion departamento", u.getId()));
-                        attrs.add(new AttributeUser(null,"ubicacion pais", u.getId()));
-                        attrs.add(new AttributeUser(null,"entidad de salud", u.getId()));
-                        attrs.add(new AttributeUser(null,"ultima consulta", u.getId()));
-                        attrs.add(new AttributeUser(null,"telefono", u.getId()));
-                        attrs.add(new AttributeUser(null,"email", u.getId()));
-                        attrs.add(new AttributeUser(null,"regimen", u.getId()));
+                        attrs.add(new AttributeUser(null,"fecha de nacimiento",false, u.getId()));
+                        attrs.add(new AttributeUser(null,"lugar de nacimiento ciudad",false,  u.getId()));
+                        attrs.add(new AttributeUser(null,"lugar de nacimiento departamento",false,  u.getId()));
+                        attrs.add(new AttributeUser(null,"lugar de nacimiento pais",false,  u.getId()));
+                        attrs.add(new AttributeUser(null,"ubicacion ciudad",false,  u.getId()));
+                        attrs.add(new AttributeUser(null,"ubicacion departamento",false,  u.getId()));
+                        attrs.add(new AttributeUser(null,"ubicacion pais",false,  u.getId()));
+                        attrs.add(new AttributeUser(null,"entidad de salud",false,  u.getId()));
+                        attrs.add(new AttributeUser(null,"ultima consulta",false,  u.getId()));
+                        attrs.add(new AttributeUser(null,"telefono",false,  u.getId()));
+                        attrs.add(new AttributeUser(null,"email",false,  u.getId()));
+                        attrs.add(new AttributeUser(null,"regimen",false,  u.getId()));
                         // clinical history example attributes
-                        attrs.add(new AttributeUser(null,"historia_clinica_numero", u.getId()));
-                        attrs.add(new AttributeUser(null,"diagnostico_principal", u.getId()));
-                        attrs.add(new AttributeUser(null,"alergias", u.getId()));
+                        attrs.add(new AttributeUser(null,"historia_clinica_numero",false,  u.getId()));
+                        attrs.add(new AttributeUser(null,"diagnostico_principal",false,  u.getId()));
+                        attrs.add(new AttributeUser(null,"alergias",true,  u.getId()));
                     }
                     return attributeUserRepository.saveAll(Flux.fromIterable(attrs)).collectList();
                 })
@@ -101,7 +104,10 @@ public class UserInitializer implements CommandLineRunner {
                         }
                         vals.add(new com.reactive.nexo.model.ValueAttributeUser(null, a.getId(), val));
                     }
-                    return valueAttributeUserRepository.saveAll(Flux.fromIterable(vals)).collectList();
+                    // use service to enforce 'multiple' rule per attribute
+                    return Flux.fromIterable(vals)
+                            .flatMap(v -> valueAttributeService.saveValue(v))
+                            .collectList();
                 })
                 .thenMany(userRepository.findAll())
                 .subscribe(user -> {

@@ -15,6 +15,7 @@ public class AttributeUser {
     @Id
     private Integer id;
     private String name_attribute;
+    private Boolean multiple;
     @Column("user_id")
     private Integer userId;
 }
