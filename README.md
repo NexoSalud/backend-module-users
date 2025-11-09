@@ -90,8 +90,8 @@ Endpoints principales
     {
       "id": 1,
       "name": "Juan Campo",
-      "identification_type": "CC",
-      "identification_number": "1",
+      "identificationType": "CC",
+      "identificationNumber": "745454654",
       "attributes": [
         { "attributeName": "fecha de nacimiento", "values": ["1992-05-06"] },
         { "attributeName": "lugar de nacimiento ciudad", "values": ["cali"] },
