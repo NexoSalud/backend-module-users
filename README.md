@@ -42,11 +42,11 @@ Qué hace esta versión
 {
   "id": 1,
   "name": "Juan Campo",
-  "identificationType": "CC",
-  "identificationNumber": "745454654",
+  "identification_type": "CC",
+  "identification_number": "745454654",
   "attributes": [
-    { "attributeName": "fecha de nacimiento", "values": ["1992-05-06"] },
-    { "attributeName": "lugar de nacimiento ciudad", "values": ["cali"] },
+    { "attribute:name": "fecha de nacimiento", "values": ["1992-05-06"] },
+    { "attribute_name": "lugar de nacimiento ciudad", "values": ["cali"] },
     ...
   ]
 }
@@ -91,12 +91,12 @@ Endpoints principales
     {
       "id": 1,
       "name": "Juan Campo",
-      "identificationType": "CC",
-      "identificationNumber": "745454654",
+      "identification_type": "CC",
+      "identification_number": "745454654",
       "attributes": [
-        { "attributeName": "fecha de nacimiento", "values": ["1992-05-06"] },
-        { "attributeName": "lugar de nacimiento ciudad", "values": ["cali"] },
-        { "attributeName": "telefono", "values": ["315-000-0000"] }
+        { "attribute_name": "fecha de nacimiento", "values": ["1992-05-06"] },
+        { "attribute_name": "lugar de nacimiento ciudad", "values": ["cali"] },
+        { "attribute_name": "telefono", "values": ["315-000-0000"] }
       ]
     }
     ```

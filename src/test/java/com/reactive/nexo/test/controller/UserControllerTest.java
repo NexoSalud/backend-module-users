@@ -151,7 +151,7 @@ public class UserControllerTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.attributes[0].attributeName").isEqualTo("fecha de nacimiento")
+                .jsonPath("$.attributes[0].attribute_name").isEqualTo("fecha de nacimiento")
                 .jsonPath("$.attributes[0].values[0]").isEqualTo("1992-05-06");
     }
 }

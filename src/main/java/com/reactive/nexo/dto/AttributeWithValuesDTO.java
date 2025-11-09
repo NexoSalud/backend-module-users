@@ -10,6 +10,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AttributeWithValuesDTO {
-    private String attributeName;
+    private String attribute_name;
     private List<String> values;
 }
