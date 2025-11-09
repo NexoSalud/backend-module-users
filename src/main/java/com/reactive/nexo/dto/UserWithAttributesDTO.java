@@ -12,7 +12,7 @@ import java.util.List;
 public class UserWithAttributesDTO {
     private Integer id;
     private String name;
-    private String identificationNumber;
     private String identificationType;
+    private String identificationNumber;
     private List<AttributeWithValuesDTO> attributes;
 }
