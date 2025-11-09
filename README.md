@@ -42,7 +42,8 @@ Qué hace esta versión
 {
   "id": 1,
   "name": "Juan Campo",
-  "history_id": 0,
+  "identificationType": "CC",
+  "identificationNumber": "745454654",
   "attributes": [
     { "attributeName": "fecha de nacimiento", "values": ["1992-05-06"] },
     { "attributeName": "lugar de nacimiento ciudad", "values": ["cali"] },
