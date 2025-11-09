@@ -11,6 +11,20 @@ Requisitos mínimos
 - Java 17 o superior (en este repositorio se ha usado Java 19 en pruebas).
 - Maven 3.6+
 
+El proyecto ya incluye springdoc (starter WebFlux UI), por lo que la documentación OpenAPI/Swagger queda disponible en las rutas por defecto. 
+En tu entorno local (ejecutando la app en el puerto por defecto 8080) puedes encontrarla en:
+
+Interfaz web (Swagger UI):
+
+http://localhost:8080/swagger-ui.html
+o (equivalente) http://localhost:8080/swagger-ui/index.html
+Documento OpenAPI (JSON):
+
+http://localhost:8080/v3/api-docs
+Documento OpenAPI (YAML):
+
+http://localhost:8080/v3/api-docs.yaml
+
 Cómo compilar y ejecutar
 
 
