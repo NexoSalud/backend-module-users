@@ -38,7 +38,7 @@ private UserService userService;
 
     @GetMapping("/by-identification/{identificationType}/{identificationNumber}")
     public Mono<ResponseEntity<UserWithAttributesDTO>> getUserByIdentificationNumber(@PathVariable String identificationType, @PathVariable String identificationNumber){
-        Mono<UserWithAttributesDTO> user = userService.getUserWithAttributesByIdentification(identificationType, identificationNumber);
+        Mono<UserWithAttributesDTO> user = userService.getUserWithAttributesByIdentification(identificationType.toUpperCase(), identificationNumber);
         return user.map( u -> ResponseEntity.ok(u))
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
