@@ -1,6 +1,6 @@
-# reactive-nexo — Backend de ejemplo (Spring WebFlux + R2DBC)
+# reactive-nexo — Backend [API reactiva con Spring WebFlux y R2DBC]
 
-Proyecto ejemplo para mostrar una API reactiva con Spring WebFlux y R2DBC.
+Proyecto NEXO-Hospital modulos Usuarios/Pacientes [API reactiva con Spring WebFlux y R2DBC].
 
 Estado actual del proyecto
 - Paquete raíz de la aplicación: `com.reactive.nexo`.
@@ -13,19 +13,25 @@ Requisitos mínimos
 
 Cómo compilar y ejecutar
 
-1. Compilar y ejecutar tests:
+
+1. Cargar base de datos:
+```bash
+mvn flyway:migrate
+```
+
+2. Compilar y ejecutar tests:
 
 ```bash
 mvn clean test
 ```
 
-2. Empaquetar la aplicación:
+3. Empaquetar la aplicación:
 
 ```bash
 mvn clean package
 ```
 
-3. Ejecutar la JAR producida:
+4. Ejecutar la JAR producida:
 
 ```bash
 java -jar target/reactive-nexo-0.0.1-SNAPSHOT.jar
@@ -35,7 +41,7 @@ Nota: la configuración de conexión a BD se controla desde `src/main/resources/
 
 Qué hace esta versión
 - Endpoints CRUD para usuarios en `/users` (reactivo).
-- Endpoint extendido: GET `/users/{userId}` ahora devuelve, además de los datos del usuario, todos los atributos asociados y sus valores.
+- Endpoint extendido: GET `/api/v1/users/{userId}` ahora devuelve, además de los datos del usuario, todos los atributos asociados y sus valores.
   - La representación es un DTO con la siguiente forma:
 
 ```json
@@ -45,7 +51,7 @@ Qué hace esta versión
   "identification_type": "CC",
   "identification_number": "745454654",
   "attributes": [
-    { "attribute:name": "fecha de nacimiento", "values": ["1992-05-06"] },
+    { "attribute_name": "fecha de nacimiento", "values": ["1992-05-06"] },
     { "attribute_name": "lugar de nacimiento ciudad", "values": ["cali"] },
     ...
   ]
@@ -82,7 +88,7 @@ Endpoints principales
   - Solicitud (curl):
 
     ```bash
-    curl -s http://localhost:8080/users/by-identification/CC/1 | jq .
+    curl -s http://localhost:8080/api/v1/users/by-identification/CC/1 | jq .
     ```
 
   - Respuesta (ejemplo):
@@ -101,13 +107,13 @@ Endpoints principales
     }
     ```
 
-Ver y probar el endpoint `/users/{userId}`
+Ver y probar el endpoint `/api/v1//users/{userId}`
 
 1. Levanta la aplicación (ver pasos arriba).
 2. Llama al endpoint (ejemplo con curl):
 
 ```bash
-curl -s http://localhost:8080/users/1 | jq .
+curl -s http://localhost:8080/api/v1/users/1 | jq .
 ```
 
 Pruebas y desarrollo

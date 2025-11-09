@@ -11,8 +11,8 @@ public class SwaggerConfiguration {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Reactive Stream Starter Demo")
-                        .description("Reactive Stream Starter Demo")
+                        .title("Reactive Stream Starter Nexo")
+                        .description("Reactive Stream Starter Nexo")
                         .version("1.0"));
     }
 }

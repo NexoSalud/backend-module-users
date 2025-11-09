@@ -89,7 +89,7 @@ public class UserControllerTest {
 
     @Test
     public void getAllUsersValidateCount(){
-        webTestClient.get().uri("/users").exchange()
+        webTestClient.get().uri("/api/v1/users").exchange()
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON_VALUE)
                 .expectBodyList(User.class)
@@ -103,7 +103,7 @@ public class UserControllerTest {
     }
     @Test
     public void getAllUsersValidateResponse(){
-        Flux<User> userFlux = webTestClient.get().uri("/users").exchange()
+        Flux<User> userFlux = webTestClient.get().uri("/api/v1/users").exchange()
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON_VALUE)
                 .returnResult(User.class)
@@ -115,20 +115,20 @@ public class UserControllerTest {
     }
     @Test
     public void getUserById(){
-        webTestClient.get().uri("/users".concat("/{userId}"),"1")
+        webTestClient.get().uri("/api/v1/users".concat("/{userId}"),"1")
                             .exchange().expectStatus().isOk()
                             .expectBody()
                             .jsonPath("$.name","Suman Das");
     }
     @Test
     public void getUserById_NotFound(){
-        webTestClient.get().uri("/users".concat("/{userId}"),"6")
+        webTestClient.get().uri("/api/v1/users".concat("/{userId}"),"6")
                 .exchange().expectStatus().isNotFound();
     }
     @Test
     public void createUser(){
         User user = new User(null,"Rahul Dravid","CC","10");
-        webTestClient.post().uri("/users").contentType(MediaType.valueOf(MediaType.APPLICATION_JSON_VALUE))
+        webTestClient.post().uri("/api/v1/users").contentType(MediaType.valueOf(MediaType.APPLICATION_JSON_VALUE))
                             .body(Mono.just(user),User.class)
                             .exchange()
                             .expectStatus().isCreated()
@@ -138,7 +138,7 @@ public class UserControllerTest {
     }
     @Test
     public void deleteUser(){
-        webTestClient.delete().uri("/users".concat("/{userId}"),"1")
+        webTestClient.delete().uri("/api/v1/users".concat("/{userId}"),"1")
                      .accept(MediaType.valueOf(MediaType.APPLICATION_JSON_VALUE))
                      .exchange()
                      .expectStatus().isOk()
@@ -147,7 +147,7 @@ public class UserControllerTest {
 
     @Test
     public void getUserByIdentification_ReturnsAttributes(){
-        webTestClient.get().uri("/users/by-identification/{identificationType}/{identificationNumber}","CC","0")
+        webTestClient.get().uri("/api/v1/users/by-identification/{identificationType}/{identificationNumber}","CC","0")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
