@@ -98,25 +98,25 @@ public class UserControllerTest {
         webTestClient.get().uri("/api/v1/users").exchange()
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON_VALUE)
-                .expectBodyList(User.class)
-                .hasSize(3)
-                .consumeWith(user ->{
-                    List<User> users = user.getResponseBody();
-                    users.forEach( u ->{
-                        assertTrue(u.getId() != null);
-                    });
-                });
+                .expectBody()
+                .jsonPath("$.content").isArray()
+                .jsonPath("$.content.length()").isEqualTo(3)
+                .jsonPath("$.page").isEqualTo(0)
+                .jsonPath("$.size").isEqualTo(10)
+                .jsonPath("$.totalElements").isEqualTo(3)
+                .jsonPath("$.totalPages").isEqualTo(1)
+                .jsonPath("$.isLast").isEqualTo(true);
     }
     @Test
     public void getAllUsersValidateResponse(){
-        Flux<User> userFlux = webTestClient.get().uri("/api/v1/users").exchange()
+        webTestClient.get().uri("/api/v1/users").exchange()
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON_VALUE)
-                .returnResult(User.class)
-                .getResponseBody();
-        StepVerifier.create(userFlux.log("Receiving values !!!"))
-                .expectNextCount(3)
-                .verifyComplete();
+                .expectBody()
+                .jsonPath("$.content[0].id").isNotEmpty()
+                .jsonPath("$.content[0].names").isNotEmpty()
+                .jsonPath("$.content[1].id").isNotEmpty()
+                .jsonPath("$.content[2].id").isNotEmpty();
 
     }
     @Test
@@ -266,5 +266,42 @@ public class UserControllerTest {
         })
         .one().block();
     assertNotNull(newAttrId);
+    }
+
+    @Test
+    public void getAllUsersWithPagination_Page0Size2(){
+        webTestClient.get().uri("/api/v1/users?page=0&size=2").exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON_VALUE)
+                .expectBody()
+                .jsonPath("$.content.length()").isEqualTo(2)
+                .jsonPath("$.page").isEqualTo(0)
+                .jsonPath("$.size").isEqualTo(2)
+                .jsonPath("$.totalElements").isEqualTo(3)
+                .jsonPath("$.totalPages").isEqualTo(2)
+                .jsonPath("$.isLast").isEqualTo(false);
+    }
+
+    @Test
+    public void getAllUsersWithPagination_Page1Size2(){
+        webTestClient.get().uri("/api/v1/users?page=1&size=2").exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON_VALUE)
+                .expectBody()
+                .jsonPath("$.content.length()").isEqualTo(1)
+                .jsonPath("$.page").isEqualTo(1)
+                .jsonPath("$.size").isEqualTo(2)
+                .jsonPath("$.totalElements").isEqualTo(3)
+                .jsonPath("$.totalPages").isEqualTo(2)
+                .jsonPath("$.isLast").isEqualTo(true);
+    }
+
+    @Test
+    public void getAllUsersWithAttributes_FilterSpecificAttribute(){
+        webTestClient.get().uri("/api/v1/users?attributes=fecha%20de%20nacimiento").exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON_VALUE)
+                .expectBody()
+                .jsonPath("$.content").isArray();
     }
 }

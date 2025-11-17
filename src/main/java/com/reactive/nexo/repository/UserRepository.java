@@ -11,4 +11,8 @@ public interface UserRepository extends ReactiveCrudRepository<User,Integer> {
     Flux<User> findByIdentificationNumber(String identificationNumber);
     @Query("select id,identification_number,identification_type,names,lastnames from users where identification_type = $1 and identification_number = $2 limit 1")
     Mono<User> findByIdentificationTypeAndNumber(String identificationType, String identificationNumber);
+    @Query("select id,identification_number,identification_type,names,lastnames from users order by id asc limit $1 offset $2")
+    Flux<User> findAllWithPagination(int limit, int offset);
+    @Query("select count(*) from users")
+    Mono<Long> countAll();
 }

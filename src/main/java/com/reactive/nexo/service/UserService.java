@@ -24,7 +24,9 @@ import java.util.function.BiFunction;
 import java.util.Map;
 import java.util.Collections;
 import java.util.stream.Collectors;
+import java.util.Set;
 import io.r2dbc.spi.R2dbcDataIntegrityViolationException;
+import com.reactive.nexo.dto.PagedResponse;
 
 @Service
 @Slf4j
@@ -52,6 +54,45 @@ public class UserService {
 
     public Flux<User> getAllUsers(){
         return userRepository.findAll();
+    }
+
+    public Mono<PagedResponse<UserWithAttributesDTO>> getAllUsersWithPagination(int page, int size, Set<String> attributes){
+        int finalPage = page < 0 ? 0 : page;
+        int finalSize = size <= 0 ? 10 : size;
+        final int offset = finalPage * finalSize;
+        final Set<String> finalAttributes = attributes;
+        
+        return userRepository.countAll()
+                .flatMap(totalElements -> 
+                    userRepository.findAllWithPagination(finalSize, offset)
+                        .flatMap(user -> 
+                            finalAttributes == null || finalAttributes.isEmpty() 
+                                ? Mono.just(new UserWithAttributesDTO(user.getId(), user.getNames(), user.getLastnames(), user.getIdentification_type(), user.getIdentification_number(), Collections.emptyList()))
+                                : getUserWithFilteredAttributes(user.getId(), finalAttributes)
+                        )
+                        .collectList()
+                        .map(content -> {
+                            long totalPages = (totalElements + finalSize - 1) / finalSize;
+                            boolean isLast = finalPage >= totalPages - 1;
+                            return new PagedResponse<>(content, finalPage, finalSize, totalElements, totalPages, isLast);
+                        })
+                );
+    }
+
+    private Mono<UserWithAttributesDTO> getUserWithFilteredAttributes(Integer userId, Set<String> attributeNames){
+        return userRepository.findById(userId)
+            .flatMap(user ->
+                attributeUserRepository.findByUserId(userId)
+                    .filter(attribute -> attributeNames.contains(attribute.getName_attribute()))
+                    .flatMap(attribute ->
+                        valueAttributeUserRepository.findByAttributeId(attribute.getId())
+                            .map(ValueAttributeUser::getValueAttribute)
+                            .collectList()
+                            .map(values -> new AttributeWithValuesDTO(attribute.getName_attribute(), values))
+                    )
+                    .collectList()
+                    .map(attrs -> new UserWithAttributesDTO(user.getId(), user.getNames(), user.getLastnames(), user.getIdentification_type(), user.getIdentification_number(), attrs))
+            );
     }
 
     public Mono<User> findById(Integer userId){
