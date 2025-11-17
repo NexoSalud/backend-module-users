@@ -21,6 +21,10 @@ import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.Map;
+import java.util.Collections;
+import java.util.stream.Collectors;
+import io.r2dbc.spi.R2dbcDataIntegrityViolationException;
 
 @Service
 @Slf4j
@@ -35,6 +39,9 @@ public class UserService {
 
     @Autowired
     private ValueAttributeUserRepository valueAttributeUserRepository;
+
+    @Autowired
+    private com.reactive.nexo.service.ValueAttributeService valueAttributeService;
 
     public Mono<User> createUser(User user){
         // enforce uniqueness of (identification_type, identification_number)
@@ -113,5 +120,93 @@ public class UserService {
                 .runOn(Schedulers.boundedElastic())
                 .flatMap(i -> findById(i))
                 .ordered((u1, u2) -> u2.getId() - u1.getId());
+    }
+
+    public Mono<User> createUserWithAttributes(com.reactive.nexo.dto.CreateUserRequest request){
+        User toSave = new User(null, request.getNames(), request.getLastnames(), request.getIdentification_type(), request.getIdentification_number());
+        return createUser(toSave).flatMap(savedUser -> {
+            Map<String, List<String>> attrs = request.getAttributes();
+            if(attrs == null || attrs.isEmpty()){
+                return Mono.just(savedUser);
+            }
+            return Flux.fromIterable(attrs.entrySet())
+                    .flatMap(e -> {
+                        String attrName = e.getKey();
+                        List<String> values = e.getValue() == null ? Collections.emptyList() : e.getValue();
+                        AttributeUser attr = new AttributeUser(null, attrName, values.size() > 1, savedUser.getId());
+                        return attributeUserRepository.save(attr)
+                                .flatMap(savedAttr -> Flux.fromIterable(values)
+                                        .flatMap(v -> valueAttributeService.saveValue(new ValueAttributeUser(null, savedAttr.getId(), v)))
+                                        .then(Mono.just(savedAttr)));
+                    })
+                    .collectList()
+                    .then(Mono.just(savedUser));
+        });
+    }
+
+    public Mono<User> updateUserWithAttributes(Integer userId, com.reactive.nexo.dto.CreateUserRequest request){
+        return userRepository.findById(userId)
+                .flatMap(dbUser ->
+                    // check identification uniqueness
+                    userRepository.findByIdentificationTypeAndNumber(request.getIdentification_type(), request.getIdentification_number())
+                        .flatMap(conflict -> {
+                log.info("updateUserWithAttributes - found user by identification: id={} for type={} number={} (updating userId={})",
+                    conflict.getId(), request.getIdentification_type(), request.getIdentification_number(), userId);
+                if(conflict.getId().equals(userId)){
+                                dbUser.setNames(request.getNames());
+                                dbUser.setLastnames(request.getLastnames());
+                                dbUser.setIdentification_type(request.getIdentification_type());
+                                dbUser.setIdentification_number(request.getIdentification_number());
+                                return userRepository.save(dbUser);
+                            }
+                            log.info("updateUserWithAttributes - conflict with other user id={}", conflict.getId());
+                            return Mono.<User>error(new ResponseStatusException(HttpStatus.CONFLICT, "Another user with same identification exists"));
+                        })
+                        .switchIfEmpty(Mono.defer(() -> {
+                            dbUser.setNames(request.getNames());
+                            dbUser.setLastnames(request.getLastnames());
+                            dbUser.setIdentification_type(request.getIdentification_type());
+                            dbUser.setIdentification_number(request.getIdentification_number());
+                            return userRepository.save(dbUser);
+                        }))
+                ).flatMap(savedUser -> {
+                    Map<String, List<String>> attrs = request.getAttributes();
+                    final Map<String, List<String>> attrsLocal = (attrs == null) ? Collections.emptyMap() : attrs;
+
+                            // upsert provided attributes using a single safe MERGE (upsert) then load the attribute id
+                            Mono<Void> upserts = Flux.fromIterable(attrsLocal.entrySet())
+                                    .concatMap(e -> {
+                                        String name = e.getKey();
+                                        List<String> values = e.getValue() == null ? Collections.emptyList() : e.getValue();
+                                        log.info("updateUserWithAttributes - upserting attribute name='{}' values={} for userId={}", name, values, savedUser.getId());
+
+                                        // Use repository MERGE to avoid duplicate insert races. After MERGE, fetch the attribute
+                                        // and then replace/insert values as required.
+                                        return attributeUserRepository.upsertByUserIdAndName(savedUser.getId(), name, values.size() > 1)
+                                                .then(attributeUserRepository.findByUserIdAndName(savedUser.getId(), name))
+                                                .flatMap(foundAttr -> {
+                                                    log.info("updateUserWithAttributes - attribute id={} ready for values update", foundAttr.getId());
+                                                    // delete existing values then insert new ones (replacement semantics for non-multiple)
+                                                    return valueAttributeUserRepository.findByAttributeId(foundAttr.getId())
+                                                            .flatMap(valueAttributeUserRepository::delete)
+                                                            .thenMany(Flux.fromIterable(values))
+                                                            .flatMap(v -> valueAttributeService.saveValue(new ValueAttributeUser(null, foundAttr.getId(), v)))
+                                                            .then();
+                                                });
+                                    })
+                                    .then();
+
+                    // delete attributes that are not present in request
+            Mono<Void> deletions = attributeUserRepository.findByUserId(savedUser.getId())
+                .filter(a -> !attrsLocal.containsKey(a.getName_attribute()))
+                            .flatMap(a -> valueAttributeUserRepository.findByAttributeId(a.getId()).flatMap(valueAttributeUserRepository::delete).then(attributeUserRepository.delete(a)))
+                            .then();
+
+                    // Run upserts first, then deletions sequentially to avoid races where
+                    // a deletion may remove a just-created attribute and cause a duplicate
+                    // insert attempt. Doing them sequentially ensures stable, idempotent
+                    // upsert behavior for each provided attribute.
+                    return upserts.then(deletions).then(Mono.just(savedUser));
+                });
     }
 }

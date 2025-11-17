@@ -29,14 +29,13 @@ public class ValueAttributeService {
                 .flatMap(attr -> {
                     Boolean multiple = attr.getMultiple() == null ? Boolean.FALSE : attr.getMultiple();
                     if(Boolean.FALSE.equals(multiple)){
+                        // For non-multiple attributes, replace any existing value(s) with the new one.
+                        // This makes update flows idempotent and avoids races where two flows
+                        // try to insert/replace the single value concurrently.
+                        log.info("saveValue: attributeId={} multiple={} - replacing existing values if any", attributeId, multiple);
                         return valueAttributeUserRepository.findByAttributeId(attributeId)
-                                .hasElements()
-                                .flatMap(has -> {
-                                    if(has){
-                                        return Mono.error(new ResponseStatusException(HttpStatus.CONFLICT, "Attribute does not allow multiple values"));
-                                    }
-                                    return valueAttributeUserRepository.save(value);
-                                });
+                                .flatMap(valueAttributeUserRepository::delete)
+                                .then(valueAttributeUserRepository.save(value));
                     }
                     return valueAttributeUserRepository.save(value);
                 });

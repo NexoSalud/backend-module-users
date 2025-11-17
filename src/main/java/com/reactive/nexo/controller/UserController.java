@@ -20,8 +20,9 @@ private UserService userService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<User> create(@RequestBody User user){
-        return userService.createUser(user);
+    public Mono<User> create(@RequestBody com.reactive.nexo.dto.CreateUserRequest request){
+        // create user and attributes if provided
+        return userService.createUserWithAttributes(request);
     }
 
     @GetMapping
@@ -44,8 +45,8 @@ private UserService userService;
     }
 
     @PutMapping("/{userId}")
-    public Mono<ResponseEntity<User>> updateUserById(@PathVariable Integer userId, @RequestBody User user){
-        return userService.updateUser(userId,user)
+    public Mono<ResponseEntity<User>> updateUserById(@PathVariable Integer userId, @RequestBody com.reactive.nexo.dto.CreateUserRequest request){
+        return userService.updateUserWithAttributes(userId, request)
                 .map(updatedUser -> ResponseEntity.ok(updatedUser))
                 .defaultIfEmpty(ResponseEntity.badRequest().build());
     }

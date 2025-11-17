@@ -22,6 +22,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.springframework.test.web.reactive.server.EntityExchangeResult;
 
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -77,7 +80,10 @@ public class UserControllerTest {
         .fetch().rowsUpdated().block();
 
     Integer attrId = databaseClient.sql("SELECT id FROM attribute_user WHERE user_id = 1 AND name_attribute = 'fecha de nacimiento'")
-        .map((row, metadata) -> row.get("id", Integer.class))
+        .map((row, metadata) -> {
+            Number n = row.get("id", Number.class);
+            return (n == null) ? null : n.intValue();
+        })
         .one().block();
 
     if(attrId != null){
@@ -154,5 +160,111 @@ public class UserControllerTest {
                 .expectBody()
                 .jsonPath("$.attributes[0].attribute_name").isEqualTo("fecha de nacimiento")
                 .jsonPath("$.attributes[0].values[0]").isEqualTo("1992-05-06");
+    }
+
+    @Test
+    public void createUserWithAttributes() throws Exception{
+    String json = "{\n" +
+        "  \"names\": \"Jhonn\",\n" +
+        "  \"lastnames\": \"Campo\",\n" +
+        "  \"identification_type\": \"CC\",\n" +
+        "  \"identification_number\": \"858585\",\n" +
+        "  \"attributes\": {\n" +
+        "    \"fecha de nacimiento\": [\"1992-05-06\"],\n" +
+        "    \"lugar de nacimiento ciudad\": [\"cali\"]\n" +
+        "  }\n" +
+        "}";
+
+    EntityExchangeResult<User> res = webTestClient.post().uri("/api/v1/users")
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(json)
+        .exchange()
+        .expectStatus().isCreated()
+        .expectBody(User.class)
+        .returnResult();
+
+    User created = res.getResponseBody();
+    assertNotNull(created);
+    assertNotNull(created.getId());
+
+    Integer userId = created.getId();
+
+    Integer attrCount = databaseClient.sql("SELECT COUNT(*) AS c FROM attribute_user WHERE user_id = $1")
+        .bind(0, userId)
+        .map((row, md) -> {
+            Number n = row.get("c", Number.class);
+            return (n == null) ? null : n.intValue();
+        })
+        .one().block();
+
+    assertEquals(2, attrCount.intValue());
+
+    Integer valCount = databaseClient.sql("SELECT COUNT(*) AS c FROM value_attribute_user v JOIN attribute_user a ON a.id = v.attribute_id WHERE a.user_id = $1")
+        .bind(0, userId)
+        .map((row, md) -> {
+            Number n = row.get("c", Number.class);
+            return (n == null) ? null : n.intValue();
+        })
+        .one().block();
+    assertEquals(2, valCount.intValue());
+    }
+
+    @Test
+    public void updateUserAttributes_replaceAndAdd() throws Exception{
+    // update user 1: replace fecha de nacimiento and add new attribute
+    String json = "{\n" +
+        "  \"names\": \"Suman\",\n" +
+        "  \"lastnames\": \"Das\",\n" +
+        "  \"identification_type\": \"CC\",\n" +
+        "  \"identification_number\": \"0\",\n" +
+        "  \"attributes\": {\n" +
+        "    \"fecha de nacimiento\": [\"2000-01-01\"],\n" +
+        "    \"nuevo atributo\": [\"valor1\"]\n" +
+        "  }\n" +
+        "}";
+
+    webTestClient.put().uri("/api/v1/users/{id}", 1)
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(json)
+        .exchange()
+        .expectStatus().isOk()
+        .expectBody()
+        .jsonPath("$.id").isEqualTo(1);
+
+    // verify fecha de nacimiento updated
+    Integer attrId = databaseClient.sql("SELECT id FROM attribute_user WHERE user_id = $1 AND name_attribute = $2")
+        .bind(0, 1)
+        .bind(1, "fecha de nacimiento")
+        .map((r,m) -> {
+            Number n = r.get("id", Number.class);
+            return (n == null) ? null : n.intValue();
+        })
+        .one().block();
+
+    Integer valCount = databaseClient.sql("SELECT COUNT(*) AS c FROM value_attribute_user WHERE attribute_id = $1")
+        .bind(0, attrId)
+        .map((r,m) -> {
+            Number n = r.get("c", Number.class);
+            return (n == null) ? null : n.intValue();
+        })
+        .one().block();
+    assertEquals(1, valCount.intValue());
+
+    String val = databaseClient.sql("SELECT value_attribute FROM value_attribute_user WHERE attribute_id = $1")
+        .bind(0, attrId)
+        .map((r,m) -> r.get("value_attribute", String.class))
+        .one().block();
+    assertEquals("2000-01-01", val);
+
+    // verify new attribute exists
+    Integer newAttrId = databaseClient.sql("SELECT id FROM attribute_user WHERE user_id = $1 AND name_attribute = $2")
+        .bind(0, 1)
+        .bind(1, "nuevo atributo")
+        .map((r,m) -> {
+            Number n = r.get("id", Number.class);
+            return (n == null) ? null : n.intValue();
+        })
+        .one().block();
+    assertNotNull(newAttrId);
     }
 }
