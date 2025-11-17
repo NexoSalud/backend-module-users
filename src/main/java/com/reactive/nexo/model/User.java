@@ -15,7 +15,8 @@ public class User {
 
     @Id
     private Integer id;
-    private String name;
+    private String names;
+    private String lastnames;
     private String identification_type;
     private String identification_number;
 }

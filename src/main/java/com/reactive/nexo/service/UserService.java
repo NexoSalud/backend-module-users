@@ -62,7 +62,7 @@ public class UserService {
                         .map(values -> new AttributeWithValuesDTO(attribute.getName_attribute(), values))
                 )
                 .collectList()
-                .map(attrs -> new UserWithAttributesDTO(user.getId(), user.getName(), user.getIdentification_type(), user.getIdentification_number(), attrs))
+                .map(attrs -> new UserWithAttributesDTO(user.getId(), user.getNames(), user.getLastnames(), user.getIdentification_type(), user.getIdentification_number(), attrs))
         );
     }
 
@@ -103,7 +103,7 @@ public class UserService {
                         .map(values -> new AttributeWithValuesDTO(attribute.getName_attribute(), values))
                 )
                 .collectList()
-                .map(attrs -> new UserWithAttributesDTO(user.getId(), user.getName(), user.getIdentification_type(), user.getIdentification_number(), attrs))
+                .map(attrs -> new UserWithAttributesDTO(user.getId(), user.getNames(), user.getLastnames(), user.getIdentification_type(), user.getIdentification_number(), attrs))
         );
     }
 

@@ -36,13 +36,13 @@ public class UserInitializer implements CommandLineRunner {
     }
 
     private List<User> getData(){
-        return Arrays.asList(new User(null,"Juan Campo","CC","1"),
-                             new User(null,"Elieser Banguero","CC","2"),
-                             new User(null,"Migel Caicedo","CC","3"),
-                             new User(null,"Huber Guaza","CC","4"),
-                             new User(null,"Kenner Zambrano","CC","5"),
-                             new User(null,"Yeider Caicedo","CC","6"),
-                             new User(null,"Jhordy Abonia","CC","7"));
+        return Arrays.asList(new User(null,"Juan","Campo","CC","1"),
+                             new User(null,"Elieser","Banguero","CC","2"),
+                             new User(null,"Migel","Caicedo","CC","3"),
+                             new User(null,"Huber","Guaza","CC","4"),
+                             new User(null,"Kenner","Zambrano","CC","5"),
+                             new User(null,"Yeider","Caicedo","CC","6"),
+                             new User(null,"Jhordy","Abonia","CC","7"));
     }
 
     /*private List<Department> getDepartments(){
