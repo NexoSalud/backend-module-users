@@ -114,6 +114,44 @@ Endpoints principales
       "identification_type": "CC",
       "identification_number": "745454654",
       "attributes": [
+
+POST / PUT — crear y actualizar usuario con atributos
+--------------------------------------------------
+
+Los endpoints `POST /api/v1/users` y `PUT /api/v1/users/{id}` aceptan un JSON con los datos del usuario y un objeto `attributes` donde cada clave es el nombre del atributo y el valor es una lista de strings con los valores asociados.
+
+Ejemplo de solicitud para crear/actualizar un usuario (con atributos):
+
+```json
+{
+  "names": "Jhonn",
+  "lastnames": "Campo",
+  "identification_type": "CC",
+  "identification_number": "858585",
+  "attributes": {
+    "fecha de nacimiento": ["1992-05-06"],
+    "lugar de nacimiento ciudad": ["cali"],
+    "telefono": ["315-000-0000"]
+  }
+}
+```
+
+Ejemplo (curl) para crear:
+
+```bash
+curl -s -X POST http://localhost:8080/api/v1/users \
+  -H 'Content-Type: application/json' \
+  -d '{"names":"Jhonn","lastnames":"Campo","identification_type":"CC","identification_number":"858585","attributes":{"fecha de nacimiento":["1992-05-06"]}}' | jq .
+```
+
+Comportamiento importante:
+- `attributes` es un mapa: llave = nombre del atributo, valor = lista de strings.
+- Si un atributo existe y `multiple == false`, durante una actualización se reemplazan los valores previos por los nuevos (semántica de reemplazo).
+- Las combinaciones `(identification_type, identification_number)` están protegidas por una constraint única; intentar crear/actualizar a una tupla ya usada por otro usuario devolverá 409 Conflict.
+- Los nombres de atributos para un mismo usuario son únicos; la implementación utiliza un upsert a nivel SQL para evitar condiciones de carrera al crear/actualizar atributos.
+
+Puedes usar `PUT /api/v1/users/{id}` con el mismo cuerpo JSON para reemplazar valores/añadir nuevos atributos.
+
         { "attribute_name": "fecha de nacimiento", "values": ["1992-05-06"] },
         { "attribute_name": "lugar de nacimiento ciudad", "values": ["cali"] },
         { "attribute_name": "telefono", "values": ["315-000-0000"] }
