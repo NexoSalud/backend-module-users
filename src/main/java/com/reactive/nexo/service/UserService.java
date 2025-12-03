@@ -250,4 +250,40 @@ public class UserService {
                     return upserts.then(deletions).then(Mono.just(savedUser));
                 });
     }
+    
+    /**
+     * Busca usuarios por nombre de atributo dinámico y valor con diferentes tipos de relación
+     */
+    public Flux<User> findUsersByAttribute(String attributeName, String attributeValue, String relation) {
+        // Validar relación
+        if (!relation.equals("eq") && !relation.equals("lt") && !relation.equals("gt")) {
+            return Flux.error(new IllegalArgumentException("Relación no válida. Use: eq, lt, gt"));
+        }
+        
+        // Buscar usuarios por atributo dinámico
+        switch (relation.toLowerCase()) {
+            case "eq":
+                return userRepository.findByAttributeEquals(attributeName, attributeValue);
+            case "lt":
+                return userRepository.findByAttributeLessThan(attributeName, attributeValue);
+            case "gt":
+                return userRepository.findByAttributeGreaterThan(attributeName, attributeValue);
+            default:
+                return Flux.error(new IllegalArgumentException("Relación no válida"));
+        }
+    }
+    
+    /**
+     * Obtiene todos los nombres de atributos disponibles en el sistema
+     */
+    public Flux<String> getAllAttributeNames() {
+        return userRepository.findAllAttributeNames();
+    }
+    
+    /**
+     * Obtiene todos los valores disponibles para un atributo específico
+     */
+    public Flux<String> getAllValuesForAttribute(String attributeName) {
+        return userRepository.findAllValuesForAttribute(attributeName);
+    }
 }
