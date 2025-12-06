@@ -78,6 +78,41 @@ private UserService userService;
                 .defaultIfEmpty(ResponseEntity.badRequest().build());
     }
 
+    @Operation(
+        summary = "Actualización parcial de usuario",
+        description = "Permite actualizar solo los campos especificados del usuario. Los campos no incluidos en el request no se modificarán."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Usuario actualizado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado"),
+        @ApiResponse(responseCode = "409", description = "Conflicto - identificación ya existe para otro usuario"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
+    @PatchMapping("/{userId}")
+    public Mono<ResponseEntity<User>> patchUserById(
+            @Parameter(description = "ID del usuario a actualizar", required = true)
+            @PathVariable Integer userId, 
+            @Parameter(description = "Campos del usuario a actualizar (solo los campos no nulos se actualizarán)", required = true)
+            @RequestBody com.reactive.nexo.dto.CreateUserRequest request) {
+        
+        log.info("Iniciando actualización parcial del usuario con ID: {}", userId);
+        
+        return userService.partialUpdateUser(userId, request)
+                .map(updatedUser -> {
+                    log.info("Usuario actualizado exitosamente: {}", updatedUser.getId());
+                    return ResponseEntity.ok(updatedUser);
+                })
+                .onErrorResume(err -> {
+                    if (err instanceof ResponseStatusException) {
+                        ResponseStatusException rsException = (ResponseStatusException) err;
+                        log.warn("Error en actualización parcial del usuario {}: {}", userId, rsException.getReason());
+                        return Mono.just(ResponseEntity.status(rsException.getStatusCode()).build());
+                    }
+                    log.error("Error inesperado en actualización parcial del usuario {}", userId, err);
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+                });
+    }
+
     @DeleteMapping("/{userId}")
     public Mono<ResponseEntity<Void>> deleteUserById(@PathVariable Integer userId){
         return userService.deleteUser(userId)

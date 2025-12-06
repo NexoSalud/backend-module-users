@@ -304,4 +304,112 @@ public class UserControllerTest {
                 .expectBody()
                 .jsonPath("$.content").isArray();
     }
+
+    @Test
+    public void patchUser_PartialUpdate_Success(){
+        String requestBody = """
+            {
+                "names": "Carlos Eduardo",
+                "attributes": {
+                    "telefono": ["555-1234"],
+                    "direccion": ["Carrera 10 #20-30"]
+                }
+            }
+        """;
+
+        webTestClient.patch()
+                .uri("/api/v1/users/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON_VALUE)
+                .expectBody()
+                .jsonPath("$.id").isEqualTo(1)
+                .jsonPath("$.names").isEqualTo("Carlos Eduardo")
+                .jsonPath("$.lastnames").isEqualTo("Das") // debe mantener el valor original
+                .jsonPath("$.identification_type").isEqualTo("CC") // debe mantener el valor original
+                .jsonPath("$.identification_number").isEqualTo("0"); // debe mantener el valor original
+    }
+
+    @Test
+    public void patchUser_OnlyFields_Success(){
+        String requestBody = """
+            {
+                "lastnames": "Rodriguez Martinez"
+            }
+        """;
+
+        webTestClient.patch()
+                .uri("/api/v1/users/2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON_VALUE)
+                .expectBody()
+                .jsonPath("$.id").isEqualTo(2)
+                .jsonPath("$.names").isEqualTo("Arjun") // debe mantener el valor original
+                .jsonPath("$.lastnames").isEqualTo("Rodriguez Martinez")
+                .jsonPath("$.identification_type").isEqualTo("CC") // debe mantener el valor original
+                .jsonPath("$.identification_number").isEqualTo("1"); // debe mantener el valor original
+    }
+
+    @Test
+    public void patchUser_OnlyAttributes_Success(){
+        String requestBody = """
+            {
+                "attributes": {
+                    "email": ["carlos@example.com"],
+                    "edad": ["30"]
+                }
+            }
+        """;
+
+        webTestClient.patch()
+                .uri("/api/v1/users/3")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON_VALUE)
+                .expectBody()
+                .jsonPath("$.id").isEqualTo(3)
+                .jsonPath("$.names").isEqualTo("Saurabh") // debe mantener valores originales
+                .jsonPath("$.lastnames").isEqualTo("Ganguly")
+                .jsonPath("$.identification_type").isEqualTo("CC")
+                .jsonPath("$.identification_number").isEqualTo("2");
+    }
+
+    @Test
+    public void patchUser_ConflictingIdentification_ReturnsConflict(){
+        String requestBody = """
+            {
+                "identification_number": "0"
+            }
+        """;
+
+        webTestClient.patch()
+                .uri("/api/v1/users/2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isEqualTo(409); // Conflict
+    }
+
+    @Test
+    public void patchUser_NonExistentUser_ReturnsNotFound(){
+        String requestBody = """
+            {
+                "names": "Updated Name"
+            }
+        """;
+
+        webTestClient.patch()
+                .uri("/api/v1/users/999")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isNotFound();
+    }
 }

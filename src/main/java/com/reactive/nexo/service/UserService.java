@@ -286,4 +286,92 @@ public class UserService {
     public Flux<String> getAllValuesForAttribute(String attributeName) {
         return userRepository.findAllValuesForAttribute(attributeName);
     }
+
+    /**
+     * Actualización parcial de un usuario (PATCH)
+     * Solo actualiza los campos que no son null en el request
+     */
+    public Mono<User> partialUpdateUser(Integer userId, com.reactive.nexo.dto.CreateUserRequest request) {
+        return userRepository.findById(userId)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")))
+                .flatMap(dbUser -> {
+                    // Verificar si se está actualizando identificación y si ya existe
+                    if (request.getIdentification_type() != null || request.getIdentification_number() != null) {
+                        String newType = request.getIdentification_type() != null ? request.getIdentification_type() : dbUser.getIdentification_type();
+                        String newNumber = request.getIdentification_number() != null ? request.getIdentification_number() : dbUser.getIdentification_number();
+                        
+                        return userRepository.findByIdentificationTypeAndNumber(newType, newNumber)
+                                .flatMap(conflict -> {
+                                    if (!conflict.getId().equals(userId)) {
+                                        return Mono.<User>error(new ResponseStatusException(HttpStatus.CONFLICT, "Another user with same identification exists"));
+                                    }
+                                    return applyPartialUpdates(dbUser, request);
+                                })
+                                .switchIfEmpty(applyPartialUpdates(dbUser, request));
+                    } else {
+                        return applyPartialUpdates(dbUser, request);
+                    }
+                });
+    }
+
+    /**
+     * Aplica las actualizaciones parciales a un usuario
+     */
+    private Mono<User> applyPartialUpdates(User dbUser, com.reactive.nexo.dto.CreateUserRequest request) {
+        // Solo actualizar campos que no son null
+        if (request.getNames() != null) {
+            dbUser.setNames(request.getNames());
+        }
+        if (request.getLastnames() != null) {
+            dbUser.setLastnames(request.getLastnames());
+        }
+        if (request.getIdentification_type() != null) {
+            dbUser.setIdentification_type(request.getIdentification_type());
+        }
+        if (request.getIdentification_number() != null) {
+            dbUser.setIdentification_number(request.getIdentification_number());
+        }
+
+        return userRepository.save(dbUser)
+                .flatMap(savedUser -> {
+                    // Actualizar atributos solo si se proporcionan
+                    Map<String, List<String>> attrs = request.getAttributes();
+                    if (attrs == null || attrs.isEmpty()) {
+                        return Mono.just(savedUser);
+                    }
+
+                    return Flux.fromIterable(attrs.entrySet())
+                            .flatMap(entry -> {
+                                String attrName = entry.getKey();
+                                List<String> values = entry.getValue() == null ? Collections.emptyList() : entry.getValue();
+                                
+                                // Buscar atributo existente o crear uno nuevo
+                                return attributeUserRepository.findByUserIdAndName(savedUser.getId(), attrName)
+                                        .flatMap(existingAttr -> {
+                                            // Actualizar atributo existente
+                                            existingAttr.setMultiple(values.size() > 1);
+                                            return attributeUserRepository.save(existingAttr)
+                                                    .flatMap(savedAttr -> {
+                                                        // Eliminar valores existentes y agregar nuevos
+                                                        return valueAttributeUserRepository.findByAttributeId(savedAttr.getId())
+                                                                .flatMap(valueAttributeUserRepository::delete)
+                                                                .then()
+                                                                .then(Flux.fromIterable(values)
+                                                                        .flatMap(v -> valueAttributeService.saveValue(new ValueAttributeUser(null, savedAttr.getId(), v)))
+                                                                        .then(Mono.just(savedAttr)));
+                                                    });
+                                        })
+                                        .switchIfEmpty(
+                                                // Crear nuevo atributo si no existe
+                                                attributeUserRepository.save(new AttributeUser(null, attrName, values.size() > 1, savedUser.getId()))
+                                                        .flatMap(newAttr -> 
+                                                                Flux.fromIterable(values)
+                                                                        .flatMap(v -> valueAttributeService.saveValue(new ValueAttributeUser(null, newAttr.getId(), v)))
+                                                                        .then(Mono.just(newAttr)))
+                                        );
+                            })
+                            .collectList()
+                            .then(Mono.just(savedUser));
+                });
+    }
 }
