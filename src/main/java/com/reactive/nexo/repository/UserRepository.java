@@ -15,4 +15,39 @@ public interface UserRepository extends ReactiveCrudRepository<User,Integer> {
     Flux<User> findAllWithPagination(int limit, int offset);
     @Query("select count(*) from users")
     Mono<Long> countAll();
+    
+    // Búsqueda por atributos dinámicos con relación EQUAL
+    @Query("select DISTINCT u.id, u.identification_number, u.identification_type, u.names, u.lastnames " +
+           "from users u " +
+           "INNER JOIN attribute_user au ON u.id = au.user_id " +
+           "INNER JOIN value_attribute_user vau ON au.id = vau.attribute_id " +
+           "WHERE au.name_attribute = $1 AND vau.value_attribute = $2")
+    Flux<User> findByAttributeEquals(String attributeName, String attributeValue);
+    
+    // Búsqueda por atributos dinámicos con relación LESS THAN
+    @Query("select DISTINCT u.id, u.identification_number, u.identification_type, u.names, u.lastnames " +
+           "from users u " +
+           "INNER JOIN attribute_user au ON u.id = au.user_id " +
+           "INNER JOIN value_attribute_user vau ON au.id = vau.attribute_id " +
+           "WHERE au.name_attribute = $1 AND vau.value_attribute < $2")
+    Flux<User> findByAttributeLessThan(String attributeName, String attributeValue);
+    
+    // Búsqueda por atributos dinámicos con relación GREATER THAN
+    @Query("select DISTINCT u.id, u.identification_number, u.identification_type, u.names, u.lastnames " +
+           "from users u " +
+           "INNER JOIN attribute_user au ON u.id = au.user_id " +
+           "INNER JOIN value_attribute_user vau ON au.id = vau.attribute_id " +
+           "WHERE au.name_attribute = $1 AND vau.value_attribute > $2")
+    Flux<User> findByAttributeGreaterThan(String attributeName, String attributeValue);
+    
+    // Consulta para obtener todos los nombres de atributos disponibles
+    @Query("select DISTINCT au.name_attribute from attribute_user au ORDER BY au.name_attribute")
+    Flux<String> findAllAttributeNames();
+    
+    // Consulta para obtener todos los valores de un atributo específico
+    @Query("select DISTINCT vau.value_attribute " +
+           "from attribute_user au " +
+           "INNER JOIN value_attribute_user vau ON au.id = vau.attribute_id " +
+           "WHERE au.name_attribute = $1 ORDER BY vau.value_attribute")
+    Flux<String> findAllValuesForAttribute(String attributeName);
 }

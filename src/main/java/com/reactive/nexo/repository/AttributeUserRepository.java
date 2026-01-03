@@ -13,6 +13,8 @@ public interface AttributeUserRepository extends ReactiveCrudRepository<Attribut
     @Query("select id,user_id,name_attribute,multiple from attribute_user where user_id = $1 and name_attribute = $2 limit 1")
     Mono<AttributeUser> findByUserIdAndName(Integer userId, String nameAttribute);
 
-    @Query("MERGE INTO attribute_user (user_id, name_attribute, multiple) KEY (user_id, name_attribute) VALUES ($1, $2, $3)")
+    @Query("INSERT INTO attribute_user (user_id, name_attribute, multiple) VALUES ($1, $2, $3) " +
+           "ON CONFLICT (user_id, name_attribute) DO UPDATE SET multiple = EXCLUDED.multiple " +
+           "RETURNING id")
     Mono<Integer> upsertByUserIdAndName(Integer userId, String nameAttribute, Boolean multiple);
 }
