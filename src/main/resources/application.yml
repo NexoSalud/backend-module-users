@@ -1,8 +1,8 @@
 spring:
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/nexosalud
-    username: postgres
-    password: postgres
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/nexosalud}
+    username: ${SPRING_R2DBC_USERNAME:postgres}
+    password: ${SPRING_R2DBC_PASSWORD:postgres}
   application:
     name: users-service
   sql:
@@ -12,6 +12,10 @@ spring:
 logging:
   level:
     org.springframework.data.r2dbc: Debug
+
+server:
+  port: ${SERVER_PORT:8081}
+
 ---
 spring:
   config:
@@ -27,25 +31,25 @@ spring:
     init:
       mode: always
       schema-locations: classpath:schema.sql
-  logging:
-    level:
-      org.springframework.data.r2dbc: Debug
+
+server:
+  port: 8081
+
 ---
 spring:
   config:
     activate:
       on-profile: prod
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/nexosalud
-    username: postgres
-    password: postgres
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/nexosalud}
+    username: ${SPRING_R2DBC_USERNAME:postgres}
+    password: ${SPRING_R2DBC_PASSWORD:postgres}
   application:
     name: users-service
   sql:
     init:
       mode: always
       schema-locations: classpath:schema.sql
-  logging:
-    level:
-      org.springframework.data.r2dbc: Debug
 
+server:
+  port: ${SERVER_PORT:8081}
