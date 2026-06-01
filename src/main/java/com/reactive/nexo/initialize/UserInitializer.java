@@ -32,7 +32,8 @@ public class UserInitializer implements CommandLineRunner {
     
     @Override
     public void run(String... args) {
-            initialDataSetup();
+        // initialDataSetup() deshabilitado — no alterar datos existentes en producción
+        // initialDataSetup();
     }
 
     private List<User> getData(){
